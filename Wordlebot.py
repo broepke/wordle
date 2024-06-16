@@ -1,79 +1,148 @@
 import streamlit as st
+from collections import Counter
 
-# Initialize session state to keep track of the current row and radio button states
-if 'current_row' not in st.session_state:
-    st.session_state.current_row = 0
+# Initialize session state to keep track of inputs and radio button states
 if 'inputs' not in st.session_state:
     st.session_state.inputs = [["" for _ in range(5)] for _ in range(5)]
 if 'radio_states' not in st.session_state:
     st.session_state.radio_states = [["Select" for _ in range(5)] for _ in range(5)]
 
-# Function to render a single input cell
-def render_input_cell(row, col):
-    key_input = f"input_{row}_{col}"
-    st.session_state.inputs[row][col] = st.text_input(f"Input ({row+1},{col+1})", key=key_input)
+# Function to read words from a file
+def read_words(file_path):
+    with open(file_path, 'r') as file:
+        return [line.strip().lower() for line in file if len(line.strip()) == 5]
 
-# Function to render a single radio cell
-def render_radio_cell(row, col, key_suffix):
-    key_radio = f"radio_{row}_{col}_{key_suffix}"
-    color = st.radio("Color", ["Select", "Grey", "Green", "Yellow"], key=key_radio, horizontal=True)
-    st.session_state.radio_states[row][col] = color
+# Function to filter words based on specific criteria, exclusion list, and exclude positions for certain letters
+def filter_words(words, criteria, exclude_letters, exclude_positions_for_letters):
+    exclude_letters_set = set(exclude_letters)
+    filtered_words = []
 
-    # Determine background color based on radio button selection
-    color_dict = {"Select": "#FFFFFF", "Grey": "#D3D3D3", "Green": "#90EE90", "Yellow": "#FFFFE0"}
-    background_color = color_dict.get(color, "#FFFFFF")
+    # Remove letters from exclude list if they are in criteria or exclude_positions_for_letters
+    letters_to_keep = set(criteria.values()).union(exclude_positions_for_letters.keys())
+    exclude_letters_set.difference_update(letters_to_keep)
+
+    # Filter words based on green letter criteria
+    green_filtered_words = []
+    for word in words:
+        match = True
+        for position, char in criteria.items():
+            if word[position] != char:
+                match = False
+                break
+        if match:
+            green_filtered_words.append(word)
+
+    st.write("Words matching green letter criteria:")
+    st.write(green_filtered_words)
+
+    # Filter words based on yellow letter criteria
+    yellow_filtered_words = []
+    for word in green_filtered_words:
+        match = True
+        for letter, positions in exclude_positions_for_letters.items():
+            if letter not in word:
+                match = False
+                break
+            if any(word[pos] == letter for pos in positions):
+                match = False
+                break
+        if match:
+            yellow_filtered_words.append(word)
+
+    st.write("Words matching yellow letter criteria:")
+    st.write(yellow_filtered_words)
+
+    # Exclude words containing grey letters
+    final_filtered_words = []
+    for word in yellow_filtered_words:
+        if not any(char in exclude_letters_set for char in word):
+            final_filtered_words.append(word)
+
+    st.write("Words matching all criteria (excluding grey letters):")
+    st.write(final_filtered_words)
+
+    return final_filtered_words
+
+# Function to calculate letter frequencies for specific positions
+def calculate_frequencies(words, exclude_positions):
+    letter_counts = Counter()
+    for word in words:
+        for i, char in enumerate(word):
+            if i not in exclude_positions:
+                letter_counts[char] += 1
+    return letter_counts
+
+# Function to score words based on letter frequencies, duplicates, and ending letter
+def score_words(words, frequencies, exclude_positions):
+    def word_score(word):
+        score = sum(frequencies[char] for i, char in enumerate(word) if i not in exclude_positions)
+        duplicate_count = len(word) - len(set(word))
+        score -= duplicate_count * 100  # Penalize each duplicate letter
+        if word[-1] == 's':
+            score -= 5  # Penalize words ending in 's'
+        return score
     
-    # Style the input box based on the selected color
-    st.markdown(
-        f"""
-        <style>
-        div[data-testid="stTextInput"] input[data-baseweb="input"] {{
-            background-color: {background_color};
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    return sorted(words, key=word_score, reverse=True)
 
 # Function to handle the submission
-def submit_row():
-    current_row = st.session_state.current_row
-    if "Select" not in st.session_state.radio_states[current_row]:
-        if st.session_state.current_row < 4:
-            st.session_state.current_row += 1
-        print(f"Row {current_row} submitted, moving to row {st.session_state.current_row}")
+def submit():
+    # Build criteria and exclusions from inputs
+    criteria = {}
+    exclude_letters = set()
+    exclude_positions_for_letters = {}
+    for row in range(5):
+        for col in range(5):
+            char = st.session_state.inputs[row][col].strip().lower()
+            color = st.session_state.radio_states[row][col]
+            if color == "🟩" and char:
+                criteria[col] = char
+            elif color == "⬜" and char:
+                exclude_letters.add(char)
+            elif color == "🟨" and char:
+                if char not in exclude_positions_for_letters:
+                    exclude_positions_for_letters[char] = []
+                exclude_positions_for_letters[char].append(col)
+
+    exclude_positions = set(criteria.keys())
+
+    # Debugging output to verify criteria and exclusions
+    st.write("## Debugging Info")
+    st.write(f"Criteria: {criteria}")
+    st.write(f"Exclude Letters: {exclude_letters}")
+    st.write(f"Exclude Positions for Letters: {exclude_positions_for_letters}")
+
+    # Read the words from the file
+    words = read_words('words.txt')
+
+    # Filter and score the words
+    filtered_words = filter_words(words, criteria, exclude_letters, exclude_positions_for_letters)
+    frequencies = calculate_frequencies(filtered_words, exclude_positions)
+    sorted_filtered_words = score_words(filtered_words, frequencies, exclude_positions)
+
+    # Display the results
+    st.write("## Sorted Filtered Words")
+    if sorted_filtered_words:
+        for word in sorted_filtered_words[:25]:
+            st.write(word)
     else:
-        st.warning("Please fill in all color selections for the current row before submitting the next row.")
+        st.write("No words match the given criteria.")
 
 def main():
-    st.title("5x5 Grid with Input Boxes and Color Marking")
+    st.title("Streamlit Wordlebot")
 
     # Create a 5x5 grid for input boxes and radio buttons
     for row in range(5):
         cols = st.columns(5)
         for col in range(5):
             with cols[col]:
-                # Render input boxes for the current row
-                if row == st.session_state.current_row:
-                    render_input_cell(row, col)
-                # Render radio buttons for the previous rows
-                elif row < st.session_state.current_row:
-                    render_radio_cell(row, col, "grid")
+                key_input = f"input_{row}_{col}"
+                key_radio = f"radio_{row}_{col}"
+                st.session_state.inputs[row][col] = st.text_input(f"Input ({row+1},{col+1})", key=key_input)
+                st.session_state.radio_states[row][col] = st.radio("Color", ["❓", "⬜", "🟩", "🟨"], key=key_radio, horizontal=True)
 
-    # Submit button to move to the next row
-    if st.session_state.current_row < 5:
-        if st.session_state.current_row == 0 or (st.session_state.current_row > 0 and "Select" not in st.session_state.radio_states[st.session_state.current_row - 1]):
-            if st.button("Submit Row"):
-                st.session_state.current_row += 1
-
-    # Render radio buttons below the input boxes after submission
-    if st.session_state.current_row > 0:
-        st.markdown("## Color Selections")
-        for row in range(st.session_state.current_row):
-            cols = st.columns(5)
-            for col in range(5):
-                with cols[col]:
-                    render_radio_cell(row, col, "below")
+    # Submit button to process the inputs
+    if st.button("Submit"):
+        submit()
 
 if __name__ == "__main__":
     main()
