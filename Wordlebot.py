@@ -1,11 +1,22 @@
 import streamlit as st
 from collections import Counter
+from wordfreq import top_n_list
 
 # Initialize session state to keep track of inputs and radio button states
 if 'inputs' not in st.session_state:
     st.session_state.inputs = [["" for _ in range(5)] for _ in range(5)]
 if 'radio_states' not in st.session_state:
     st.session_state.radio_states = [["Select" for _ in range(5)] for _ in range(5)]
+
+# Get the top 100,000 words in English
+top_words = top_n_list('en', 100000)
+
+# Function to get the rank of a word
+def get_word_rank(word):
+    try:
+        return top_words.index(word) + 1
+    except ValueError:
+        return None  # Word not found in the top list
 
 # Function to read words from a file
 def read_words(file_path):
@@ -63,39 +74,48 @@ def filter_words(words, criteria, exclude_letters, exclude_positions_for_letters
 
     return final_filtered_words
 
-# Function to calculate letter frequencies for specific positions based on filtered words
-def calculate_frequencies(words, exclude_positions):
+# Function to calculate letter frequencies for specific positions based on full word list
+def calculate_frequencies(words):
     letter_counts = Counter()
     for word in words:
-        for i, char in enumerate(word):
-            if i not in exclude_positions:
-                letter_counts[char] += 1
+        for char in word:
+            letter_counts[char] += 1
     return letter_counts
 
-# Improved function to score words with more nuanced criteria, using frequencies from remaining valid words
+# Improved function to score words with more nuanced criteria, using frequencies from full word list
 def score_words(words, frequencies, exclude_positions):
     def word_score(word):
         # Base score from letter frequencies
         score = sum(frequencies[char] for i, char in enumerate(word) if i not in exclude_positions)
+        base_score = score
         
-        # Calculate the number of duplicate letters and apply a heavy penalty
+        # Calculate the number of duplicate letters and apply a heavier penalty
         duplicate_count = len(word) - len(set(word))
-        score -= duplicate_count * 20  # Increased penalty for duplicate letters
+        if duplicate_count > 0:
+            score = score / 2  # Further increased penalty for duplicate letters
+        dup_score = score
         
         # Penalize words ending with 's'
         if word[-1] == 's':
-            score -= 5
+            score = score / 100
+        s_score = score
         
-        # Bonus for diverse letters (mix of common and rare)
-        diversity_bonus = len(set(word)) * 3
-        score += diversity_bonus
+        # Bonus for diverse vowels
+        vowels = set('aeiou')
+        unique_vowels = set(word) & vowels
+        score += len(unique_vowels) * 1000  # Bonus for each unique vowel
+        vowel_score = score
         
-        # Positional importance (more weight to first and last letters)
-        if word[0] in frequencies:
-            score += frequencies[word[0]] * 1.5
-        if word[-1] in frequencies:
-            score += frequencies[word[-1]] * 1.5
+        # Add rank-based adjustment
+        rank = get_word_rank(word)
+        if rank:
+            rank_bonus = 100000 / rank  # Higher rank means more common, higher score
+            score += rank_bonus * 1000
+        else:
+            score -= 5000  # Penalty if the word is not in the top 100,000 list
+        rank_score = score
         
+        st.write(word, "Base Score:", base_score, "Duplicate Letters:", dup_score, "End S:", s_score, "Vowels:", vowel_score, "Rank:", rank, "Rank Score:", rank_score)
         return score
     
     return sorted(words, key=word_score, reverse=True)
@@ -130,11 +150,11 @@ def submit():
     # Read the words from the file
     words = read_words('words.txt')
 
+    # Calculate frequencies based on the full list of words
+    frequencies = calculate_frequencies(words)
+
     # Filter the words based on criteria and exclusions
     filtered_words = filter_words(words, criteria, exclude_letters, exclude_positions_for_letters)
-
-    # Calculate frequencies based on remaining valid words
-    frequencies = calculate_frequencies(filtered_words, exclude_positions)
 
     # Score the filtered words based on the new frequencies
     sorted_filtered_words = score_words(filtered_words, frequencies, exclude_positions)
