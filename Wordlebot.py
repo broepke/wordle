@@ -115,7 +115,7 @@ def score_words(words, frequencies, exclude_positions):
             score -= 5000  # Penalty if the word is not in the top 100,000 list
         rank_score = score
         
-        st.write(word, "Base Score:", base_score, "Duplicate Letters:", dup_score, "End S:", s_score, "Vowels:", vowel_score, "Rank:", rank, "Rank Score:", rank_score)
+        # st.write(word, "Base Score:", base_score, "Duplicate Letters:", dup_score, "End S:", s_score, "Vowels:", vowel_score, "Rank:", rank, "Rank Score:", rank_score)
         return score
     
     return sorted(words, key=word_score, reverse=True)
@@ -142,10 +142,10 @@ def submit():
     exclude_positions = set(criteria.keys())
 
     # Debugging output to verify criteria and exclusions
-    st.write("## Debugging Info")
-    st.write(f"Criteria: {criteria}")
-    st.write(f"Exclude Letters: {exclude_letters}")
-    st.write(f"Exclude Positions for Letters: {exclude_positions_for_letters}")
+    st.write("## Results")
+    # st.write(f"Criteria: {criteria}")
+    # st.write(f"Exclude Letters: {exclude_letters}")
+    # st.write(f"Exclude Positions for Letters: {exclude_positions_for_letters}")
 
     # Read the words from the file
     words = read_words('words.txt')
