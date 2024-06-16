@@ -168,7 +168,7 @@ def submit():
         st.write("No words match the given criteria.")
 
 def main():
-    st.title("Streamlit WordleBrian")
+    st.title("WordleBrian")
 
     # Create a 5x5 grid for input boxes and radio buttons
     for row in range(5):
