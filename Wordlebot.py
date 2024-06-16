@@ -15,7 +15,6 @@ def read_words(file_path):
 # Function to filter words based on specific criteria, exclusion list, and exclude positions for certain letters
 def filter_words(words, criteria, exclude_letters, exclude_positions_for_letters):
     exclude_letters_set = set(exclude_letters)
-    filtered_words = []
 
     # Remove letters from exclude list if they are in criteria or exclude_positions_for_letters
     letters_to_keep = set(criteria.values()).union(exclude_positions_for_letters.keys())
@@ -33,7 +32,7 @@ def filter_words(words, criteria, exclude_letters, exclude_positions_for_letters
             green_filtered_words.append(word)
 
     st.write("Words matching green letter criteria:")
-    st.write(green_filtered_words)
+    st.write(len(green_filtered_words))
 
     # Filter words based on yellow letter criteria
     yellow_filtered_words = []
@@ -50,7 +49,7 @@ def filter_words(words, criteria, exclude_letters, exclude_positions_for_letters
             yellow_filtered_words.append(word)
 
     st.write("Words matching yellow letter criteria:")
-    st.write(yellow_filtered_words)
+    st.write(len(yellow_filtered_words))
 
     # Exclude words containing grey letters
     final_filtered_words = []
@@ -59,11 +58,12 @@ def filter_words(words, criteria, exclude_letters, exclude_positions_for_letters
             final_filtered_words.append(word)
 
     st.write("Words matching all criteria (excluding grey letters):")
+    st.write(len(final_filtered_words))
     st.write(final_filtered_words)
 
     return final_filtered_words
 
-# Function to calculate letter frequencies for specific positions
+# Function to calculate letter frequencies for specific positions based on filtered words
 def calculate_frequencies(words, exclude_positions):
     letter_counts = Counter()
     for word in words:
@@ -72,14 +72,30 @@ def calculate_frequencies(words, exclude_positions):
                 letter_counts[char] += 1
     return letter_counts
 
-# Function to score words based on letter frequencies, duplicates, and ending letter
+# Improved function to score words with more nuanced criteria, using frequencies from remaining valid words
 def score_words(words, frequencies, exclude_positions):
     def word_score(word):
+        # Base score from letter frequencies
         score = sum(frequencies[char] for i, char in enumerate(word) if i not in exclude_positions)
+        
+        # Calculate the number of duplicate letters and apply a heavy penalty
         duplicate_count = len(word) - len(set(word))
-        score -= duplicate_count * 100  # Penalize each duplicate letter
+        score -= duplicate_count * 20  # Increased penalty for duplicate letters
+        
+        # Penalize words ending with 's'
         if word[-1] == 's':
-            score -= 5  # Penalize words ending in 's'
+            score -= 5
+        
+        # Bonus for diverse letters (mix of common and rare)
+        diversity_bonus = len(set(word)) * 3
+        score += diversity_bonus
+        
+        # Positional importance (more weight to first and last letters)
+        if word[0] in frequencies:
+            score += frequencies[word[0]] * 1.5
+        if word[-1] in frequencies:
+            score += frequencies[word[-1]] * 1.5
+        
         return score
     
     return sorted(words, key=word_score, reverse=True)
@@ -114,9 +130,13 @@ def submit():
     # Read the words from the file
     words = read_words('words.txt')
 
-    # Filter and score the words
+    # Filter the words based on criteria and exclusions
     filtered_words = filter_words(words, criteria, exclude_letters, exclude_positions_for_letters)
+
+    # Calculate frequencies based on remaining valid words
     frequencies = calculate_frequencies(filtered_words, exclude_positions)
+
+    # Score the filtered words based on the new frequencies
     sorted_filtered_words = score_words(filtered_words, frequencies, exclude_positions)
 
     # Display the results
