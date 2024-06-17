@@ -5,7 +5,7 @@ import os
 import altair as alt
 
 def main():
-    st.title("Distribution of Letters")
+    st.title("Frequencies of Letters")
 
     # Construct the path to the words.txt file
     file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'words.txt')
