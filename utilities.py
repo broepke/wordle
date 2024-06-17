@@ -81,37 +81,45 @@ def calculate_frequencies(words):
 # Improved function to score words with more nuanced criteria, using frequencies from full word list
 def score_words(words, frequencies, exclude_positions):
     def word_score(word):
+        score = 0
         # Base score from letter frequencies
-        score = sum(frequencies[char] for i, char in enumerate(word) if i not in exclude_positions)
-        base_score = score
+        base_score = sum(frequencies[char] for i, char in enumerate(word) if i not in exclude_positions)
 
         # Calculate the number of duplicate letters and apply a heavier penalty
+        dup_score = 1
         duplicate_count = len(word) - len(set(word))
         if duplicate_count > 0:
-            score = score / 2  # Further increased penalty for duplicate letters
-        dup_score = score
+            dup_score = 0.5
 
         # Penalize words ending with 's'
+        s_score = 1
         if word[-1] == 's':
-            score = score / 100
-        s_score = score
+            s_score = 0.1
 
         # Bonus for diverse vowels
+        vowel_score = 0
         vowels = set('aeiou')
         unique_vowels = set(word) & vowels
-        score += len(unique_vowels) * 1000  # Bonus for each unique vowel
-        vowel_score = score
+        vowel_score += len(unique_vowels) * 1000
 
         # Add rank-based adjustment
+        rank_score = 0
         rank = get_word_rank(word)
         if rank:
             rank_bonus = 100000 / rank  # Higher rank means more common, higher score
-            score += rank_bonus * 1000
+            rank_score = int(rank_bonus * 1000)
         else:
-            score -= 5000  # Penalty if the word is not in the top 100,000 list
-        rank_score = score
+            rank_score = -5000  # Penalty if the word is not in the top 100,000 list
+            
+        score = base_score * dup_score * s_score + vowel_score + rank_score
 
-        # st.write(word, "Base Score:", base_score, "Duplicate Letters:", dup_score, "End S:", s_score, "Vowels:", vowel_score, "Rank:", rank, "Rank Score:", rank_score)
+        st.write(f"**{word}**")
+        st.write("Base Score", base_score)
+        st.write("Duplicate Letters (*)", dup_score)
+        st.write("End S (*):", s_score)
+        st.write("Vowels (+):", vowel_score)
+        st.write("Word Rank (+):", rank, "Rank Score:", rank_score)
+        st.write("Final Score:", score)
         return score
 
     return sorted(words, key=word_score, reverse=True)
