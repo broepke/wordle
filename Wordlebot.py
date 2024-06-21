@@ -5,7 +5,7 @@ from utilities import calculate_frequencies, filter_words, score_words, read_wor
 if "inputs" not in st.session_state:
     st.session_state.inputs = [["" for _ in range(5)] for _ in range(5)]
 if "radio_states" not in st.session_state:
-    st.session_state.radio_states = [["Select" for _ in range(5)] for _ in range(5)]
+    st.session_state.radio_states = [["❓" for _ in range(5)] for _ in range(5)]
 
 # Function to handle the submission
 def submit():
@@ -69,7 +69,7 @@ def main():
                 if f"input_{row}_{col}" not in st.session_state:
                     st.session_state[f"input_{row}_{col}"] = ""
                 if f"radio_{row}_{col}" not in st.session_state:
-                    st.session_state[f"radio_{row}_{col}"] = "Select"
+                    st.session_state[f"radio_{row}_{col}"] = "❓"
                 st.session_state.inputs[row][col] = st.text_input(
                     f"Input ({row+1},{col+1})", key=key_input, value=st.session_state[f"input_{row}_{col}"]
                 )
