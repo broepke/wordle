@@ -49,7 +49,7 @@ def submit():
     sorted_filtered_words = score_words(filtered_words, frequencies, exclude_positions)
 
     # Display the results
-    st.write("## Sorted Filtered Words")
+    st.write("## Top Slected Words")
     if sorted_filtered_words:
         for word in sorted_filtered_words[:25]:
             st.write(word)
