@@ -7,7 +7,6 @@ if "inputs" not in st.session_state:
 if "radio_states" not in st.session_state:
     st.session_state.radio_states = [["Select" for _ in range(5)] for _ in range(5)]
 
-
 # Function to handle the submission
 def submit():
     # Build criteria and exclusions from inputs
@@ -31,6 +30,9 @@ def submit():
 
     # Debugging output to verify criteria and exclusions
     # st.write("## Results")
+    # st.write(f"Criteria: {criteria}")
+    # st.write(f"Exclude Letters: {exclude_letters}")
+    # st.write(f"Exclude Positions for Letters: {exclude_positions_for_letters}")
 
     # Read the words from the file
     words = read_words("words.txt")
@@ -54,7 +56,6 @@ def submit():
     else:
         st.write("No words match the given criteria.")
 
-
 def main():
     st.title("WordleBrian")
 
@@ -65,17 +66,20 @@ def main():
             with cols[col]:
                 key_input = f"input_{row}_{col}"
                 key_radio = f"radio_{row}_{col}"
+                if f"input_{row}_{col}" not in st.session_state:
+                    st.session_state[f"input_{row}_{col}"] = ""
+                if f"radio_{row}_{col}" not in st.session_state:
+                    st.session_state[f"radio_{row}_{col}"] = "Select"
                 st.session_state.inputs[row][col] = st.text_input(
-                    f"Input ({row+1},{col+1})", key=key_input
+                    f"Input ({row+1},{col+1})", key=key_input, value=st.session_state[f"input_{row}_{col}"]
                 )
                 st.session_state.radio_states[row][col] = st.radio(
-                    "Color", ["❓", "⬜", "🟩", "🟨"], key=key_radio, horizontal=True
+                    "Color", ["❓", "⬜", "🟩", "🟨"], key=key_radio, horizontal=True, index=["❓", "⬜", "🟩", "🟨"].index(st.session_state[f"radio_{row}_{col}"])
                 )
 
     # Submit button to process the inputs
     if st.button("Submit"):
         submit()
-
 
 if __name__ == "__main__":
     main()
