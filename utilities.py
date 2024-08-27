@@ -124,7 +124,7 @@ def score_words(words, frequencies, exclude_positions):
         rank = get_word_rank(word)
         if rank:
             rank_bonus = 100000 / rank  # Higher rank means more common, higher score
-            rank_score = int(rank_bonus * 1000)
+            rank_score = int(rank_bonus * 10)
         else:
             rank_score = -5000  # Penalty if the word is not in the top 100,000 list
 
