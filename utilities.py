@@ -62,17 +62,36 @@ def filter_words(words, criteria, exclude_letters, exclude_positions_for_letters
     print("Words after applying yellow letter criteria:", len(yellow_filtered_words))
     print("Words:", yellow_filtered_words[:10])  # Print first 10 for brevity
 
-    # Exclude words containing grey letters unless they are in the green positions
+    # Exclude words containing grey letters, but account for yellow/green instances
     final_filtered_words = []
     for word in yellow_filtered_words:
         match = True
         for i, char in enumerate(word):
-            if char in exclude_letters_set and (
-                i not in criteria or criteria[i] != char
-            ):
+            # Skip this position if it's a green letter
+            if i in criteria and criteria[i] == char:
+                continue
+                
+            # Skip this position if it's a yellow letter position
+            if char in exclude_positions_for_letters:
+                # Count how many times this letter appears in yellow positions
+                yellow_count = len(exclude_positions_for_letters[char])
+                # Count how many times this letter appears in the word
+                word_char_count = word.count(char)
+                # Count how many times this letter appears in green positions
+                green_count = sum(1 for pos, c in criteria.items() if c == char)
+                
+                # If we have the right number of this letter (yellow + green instances),
+                # then this position is okay even if the letter is in exclude_letters
+                if word_char_count <= (yellow_count + green_count):
+                    continue
+            
+            # If we get here and the character is in exclude_letters,
+            # then this is an extra occurrence that should be excluded
+            if char in exclude_letters_set:
                 match = False
                 print(f"Excluding {word} due to grey letter '{char}' at position {i}")
                 break
+                
         if match:
             final_filtered_words.append(word)
 
