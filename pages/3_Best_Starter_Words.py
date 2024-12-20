@@ -2,38 +2,36 @@ import streamlit as st
 from utilities import calculate_frequencies, filter_words, score_words, read_words
 
 
-def main():
-    st.title("Best Starter Words")
 
-    # Build criteria and exclusions from inputs
-    criteria = {}
-    exclude_letters = set()
-    exclude_positions_for_letters = {}
+st.title("Best Starter Words")
 
-    exclude_positions = set(criteria.keys())
+# Build criteria and exclusions from inputs
+criteria = {}
+exclude_letters = set()
+exclude_positions_for_letters = {}
 
-    # Read the words from the file
-    words = read_words("words.txt")
+exclude_positions = set(criteria.keys())
 
-    # Calculate frequencies based on the full list of words
-    frequencies = calculate_frequencies(words)
+# Read the words from the file
+words = read_words("words.txt")
 
-    # Filter the words based on criteria and exclusions
-    filtered_words = filter_words(
-        words, criteria, exclude_letters, exclude_positions_for_letters
-    )
+# Calculate frequencies based on the full list of words
+frequencies = calculate_frequencies(words)
 
-    # Score the filtered words based on the new frequencies
-    sorted_filtered_words = score_words(filtered_words, frequencies, exclude_positions)
+# Filter the words based on criteria and exclusions
+filtered_words = filter_words(
+    words, criteria, exclude_letters, exclude_positions_for_letters
+)
 
-    # Display the results
-    st.write("## Top Slected Words")
-    if sorted_filtered_words:
-        for word in sorted_filtered_words[:25]:
-            st.write(word)
-    else:
-        st.write("No words match the given criteria.")
+# Score the filtered words based on the new frequencies
+sorted_filtered_words = score_words(filtered_words, frequencies, exclude_positions)
+
+# Display the results
+st.write("## Top Slected Words")
+if sorted_filtered_words:
+    for word in sorted_filtered_words[:25]:
+        st.write(word)
+else:
+    st.write("No words match the given criteria.")
 
 
-if __name__ == "__main__":
-    main()
